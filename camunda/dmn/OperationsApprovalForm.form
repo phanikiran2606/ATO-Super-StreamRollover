@@ -1,0 +1,115 @@
+{
+  "components": [
+    {
+      "label": "Member ID",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_0voqvar",
+        "columns": null
+      },
+      "id": "Field_117bs0x",
+      "key": "memberId",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Member Name",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_0f058zf",
+        "columns": null
+      },
+      "id": "Field_1tn79wd",
+      "key": "memberName",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "source Fund",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_0rjli0a",
+        "columns": null
+      },
+      "id": "Field_0uawxks",
+      "key": "sourceFund",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Destination Fund",
+      "type": "textfield",
+      "layout": {
+        "row": "Row_1f9sdhf",
+        "columns": null
+      },
+      "id": "Field_0upuk23",
+      "key": "destinationFund",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Rollover Amount",
+      "type": "number",
+      "layout": {
+        "row": "Row_0c5ep9g",
+        "columns": null
+      },
+      "id": "Field_00b0cqg",
+      "key": "amount",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Approve / Reject",
+      "values": [
+        {
+          "label": "Approve",
+          "value": "APPROVED"
+        },
+        {
+          "label": "Reject",
+          "value": "REJECTED"
+        }
+      ],
+      "type": "select",
+      "layout": {
+        "row": "Row_0hzs2w6",
+        "columns": null
+      },
+      "id": "Field_1ejulww",
+      "key": "approvalStatus",
+      "description": "Approval Status",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "label": "Comments",
+      "type": "textarea",
+      "layout": {
+        "row": "Row_0k59p9s",
+        "columns": null
+      },
+      "id": "Field_1kuyqhy",
+      "key": "approvalComments",
+      "validate": {
+        "required": true
+      }
+    }
+  ],
+  "type": "default",
+  "id": "OperationsApprovalForm",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.9.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.49.0"
+  },
+  "schemaVersion": 19
+}
