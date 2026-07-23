@@ -1,3 +1,5 @@
-pyzeebe==3.0.4
+fastapi
+uvicorn
 python-dotenv
 requests
+pyzeebe

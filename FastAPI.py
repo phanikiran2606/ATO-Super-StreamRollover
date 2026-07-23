@@ -24,6 +24,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.get("/")
+def home():
+    return {"message": "FastAPI running on Azure"}
+
+@app.post("/rollover")
+def start_rollover():
+    return {"status": "started"}
 
 # ---------------------------------------
 # Camunda Connection
