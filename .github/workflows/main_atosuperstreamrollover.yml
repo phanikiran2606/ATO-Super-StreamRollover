@@ -25,24 +25,20 @@ jobs:
           python-version: '3.11'
 
 
-      - name: Install dependencies
+      - name: Validate requirements
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-
-      - name: Create deployment package
-        run: |
-          zip -r release.zip . \
-          -x "antenv/*" \
-          -x ".git/*"
 
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: release.zip
+          path: |
+            .
+            !antenv/
+            !.git/
 
 
 
@@ -58,7 +54,6 @@ jobs:
 
 
     steps:
-
 
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -81,9 +76,6 @@ jobs:
         uses: azure/webapps-deploy@v3
 
         with:
-
           app-name: atosuperstreamrollover
-
           slot-name: Production
-
-          package: release.zip
+          package: .
