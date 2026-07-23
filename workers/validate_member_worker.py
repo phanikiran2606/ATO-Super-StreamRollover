@@ -71,7 +71,7 @@ async def evaluate_eligibility(
 
     endpoint = os.getenv(
         "CAMUNDA_REST_URL"
-    )
+    ).rstrip("/")
 
 
     url = (
