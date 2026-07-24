@@ -6,9 +6,8 @@ import requests
 # Configuration
 # ---------------------------------------
 
-FASTAPI_URL = "http://127.0.0.1:8000"
-
-
+#FASTAPI_URL = "http://127.0.0.1:8000"
+FASTAPI_URL = "https://atosuperstreamrollover-exceg8h8d5d5hcae.australiaeast-01.azurewebsites.net"
 # ---------------------------------------
 # Page Configuration
 # ---------------------------------------
@@ -134,7 +133,8 @@ with st.form("rollover_form"):
 
                 f"{FASTAPI_URL}/rollover",
 
-                json=payload
+                json=payload,
+                timeout=30
 
             )
 
