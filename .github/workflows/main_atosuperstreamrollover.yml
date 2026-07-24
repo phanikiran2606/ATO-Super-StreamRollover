@@ -1,9 +1,10 @@
-name: Build and deploy Python app to Azure Web App - atosuperstreamrollover
+name: Deploy FastAPI to Azure Web App
 
 on:
   push:
     branches:
       - main
+
   workflow_dispatch:
 
 
@@ -16,73 +17,91 @@ jobs:
     permissions:
       contents: read
 
+
     steps:
 
-      - name: Checkout source
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
 
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+    - name: Install packages
+      run: |
+
+        python -m pip install --upgrade pip
+
+        pip install -r requirements.txt
 
 
-      - name: Upload application
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            .
-            !antenv/
-            !.git/
+
+    - name: Create package
+      run: |
+
+        zip -r app.zip . \
+        -x ".git/*"
+
+
+
+    - name: Upload package
+      uses: actions/upload-artifact@v4
+      with:
+
+        name: app
+
+        path: app.zip
 
 
 
   deploy:
 
+
     runs-on: ubuntu-latest
 
     needs: build
 
+
     permissions:
+
       id-token: write
+
       contents: read
+
 
 
     steps:
 
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
+    - name: Download package
+      uses: actions/download-artifact@v4
+      with:
+
+        name: app
 
 
 
-      - name: Login to Azure using OIDC
-        uses: azure/login@v2
-        with:
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
 
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_37AE178FE4E34897A7B31DF1FC8ABC4A }}
+        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_37AE178FE4E34897A7B31DF1FC8ABC4A }}
 
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8C898202742F4CE1808FCF16834299A3 }}
+        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8C898202742F4CE1808FCF16834299A3 }}
 
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_EEAD6383961D46DD9636015F2B5B32A1 }}
+        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_EEAD6383961D46DD9636015F2B5B32A1 }}
 
 
 
-      - name: Deploy FastAPI App
-        uses: azure/webapps-deploy@v3
+    - name: Deploy
 
-        with:
+      uses: azure/webapps-deploy@v3
 
-          app-name: atosuperstreamrollover
+      with:
 
-          slot-name: Production
+        app-name: atosuperstreamrollover
+
+        package: app.zip
