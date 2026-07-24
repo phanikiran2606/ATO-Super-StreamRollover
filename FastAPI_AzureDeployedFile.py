@@ -4,34 +4,37 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 import os
+import logging
 
 from pyzeebe import ZeebeClient
 from pyzeebe.channel.oauth_channel import create_camunda_cloud_channel
 
 
-# =====================================================
-# Load Environment Variables
-# =====================================================
+# -------------------------------------------------
+# Logging
+# -------------------------------------------------
 
-# Local development only (.env)
-# Azure will use Application Settings
+logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+
+# -------------------------------------------------
+# Load environment
+# -------------------------------------------------
+
 load_dotenv()
 
 
-# =====================================================
-# FastAPI Application
-# =====================================================
+# -------------------------------------------------
+# FastAPI App
+# -------------------------------------------------
 
 app = FastAPI(
     title="ATO SuperStream Rollover API",
-    description="API to start and monitor ATO SuperStream rollover process",
-    version="1.0.0"
+    version="1.0"
 )
 
-
-# =====================================================
-# Enable CORS
-# =====================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,9 +45,10 @@ app.add_middleware(
 )
 
 
-# =====================================================
-# Camunda Cloud Configuration
-# =====================================================
+
+# -------------------------------------------------
+# Camunda Configuration
+# -------------------------------------------------
 
 CAMUNDA_CLIENT_ID = os.getenv("CAMUNDA_CLIENT_ID")
 CAMUNDA_CLIENT_SECRET = os.getenv("CAMUNDA_CLIENT_SECRET")
@@ -55,14 +59,29 @@ CAMUNDA_REGION = os.getenv("CAMUNDA_REGION")
 zeebe_client = None
 
 
-try:
 
-    if all([
-        CAMUNDA_CLIENT_ID,
-        CAMUNDA_CLIENT_SECRET,
-        CAMUNDA_CLUSTER_ID,
-        CAMUNDA_REGION
-    ]):
+@app.on_event("startup")
+async def startup_event():
+
+    global zeebe_client
+
+
+    try:
+
+        logger.info("Connecting to Camunda Cloud...")
+
+
+        if not all([
+            CAMUNDA_CLIENT_ID,
+            CAMUNDA_CLIENT_SECRET,
+            CAMUNDA_CLUSTER_ID,
+            CAMUNDA_REGION
+        ]):
+
+            raise Exception(
+                "Missing Camunda environment variables"
+            )
+
 
         channel = create_camunda_cloud_channel(
 
@@ -76,30 +95,31 @@ try:
 
         )
 
-        zeebe_client = ZeebeClient(channel)
+
+        zeebe_client = ZeebeClient(
+
+            channel
+
+        )
 
 
-except Exception as e:
-
-    print(
-        "Camunda connection failed:",
-        str(e)
-    )
+        logger.info(
+            "Connected to Camunda Cloud"
+        )
 
 
-# =====================================================
-# Temporary Process Status Storage
-# =====================================================
+    except Exception as e:
 
-# For production replace with:
-# Azure SQL / Cosmos DB / Redis
-
-process_status = {}
+        logger.error(
+            f"Camunda initialization failed: {e}"
+        )
 
 
-# =====================================================
+
+
+# -------------------------------------------------
 # Request Model
-# =====================================================
+# -------------------------------------------------
 
 class RolloverRequest(BaseModel):
 
@@ -115,28 +135,28 @@ class RolloverRequest(BaseModel):
 
 
 
-# =====================================================
+# -------------------------------------------------
 # Health Check
-# =====================================================
+# -------------------------------------------------
 
 @app.get("/")
-async def health_check():
+async def root():
 
     return {
 
         "application":
-            "ATO SuperStream Rollover API",
+        "ATO SuperStream Rollover API",
 
         "status":
-            "RUNNING"
+        "RUNNING"
 
     }
 
 
 
-# =====================================================
-# Start Rollover Process
-# =====================================================
+# -------------------------------------------------
+# Start Process
+# -------------------------------------------------
 
 @app.post("/rollover")
 async def start_rollover(
@@ -150,40 +170,26 @@ async def start_rollover(
 
             status_code=500,
 
-            detail="Camunda client not configured"
+            detail="Camunda client not initialized"
 
         )
 
 
     variables = {
 
+        "memberId": request.memberId,
 
-        "memberId":
-            request.memberId,
+        "memberName": request.memberName,
 
+        "sourceFund": request.sourceFund,
 
-        "memberName":
-            request.memberName,
+        "destinationFund": request.destinationFund,
 
+        "amount": request.amount,
 
-        "sourceFund":
-            request.sourceFund,
+        "approvalStatus": "",
 
-
-        "destinationFund":
-            request.destinationFund,
-
-
-        "amount":
-            request.amount,
-
-
-        "approvalStatus":
-            "",
-
-
-        "approvalComments":
-            ""
+        "approvalComments": ""
 
     }
 
@@ -191,51 +197,37 @@ async def start_rollover(
     try:
 
 
-        process_instance = await zeebe_client.run_process(
+        result = await zeebe_client.run_process(
 
-            bpmn_process_id=
-                "ato_superstream_rollover",
+            bpmn_process_id="ato_superstream_rollover",
 
-            variables=
-                variables
+            variables=variables
 
         )
-
-
-        process_key = str(
-
-            process_instance.process_instance_key
-
-        )
-
-
-        process_status[process_key] = {
-
-
-            "status":
-                "RUNNING",
-
-
-            "currentActivity":
-                "Validate Member"
-
-        }
 
 
         return {
 
 
             "status":
-                "STARTED",
+            "STARTED",
 
 
             "processInstanceKey":
-                process_key
+            str(
+                result.process_instance_key
+            )
 
         }
 
 
+
     except Exception as e:
+
+
+        logger.error(
+            str(e)
+        )
 
 
         raise HTTPException(
@@ -248,87 +240,30 @@ async def start_rollover(
 
 
 
-# =====================================================
-# Update Process Status
-# =====================================================
+# -------------------------------------------------
+# Status
+# -------------------------------------------------
 
-@app.post("/update-status/{process_key}")
-async def update_status(
-
-        process_key: str,
-
-        activity: str,
-
-        status: str = "RUNNING"
-
-):
+process_status = {}
 
 
-    process_status[process_key] = {
-
-
-        "status":
-            status,
-
-
-        "currentActivity":
-            activity
-
-    }
-
-
-    return {
-
-
-        "message":
-            "Status updated"
-
-    }
-
-
-
-# =====================================================
-# Get Process Status
-# =====================================================
 
 @app.get("/status/{process_key}")
-async def get_status(
-
-        process_key: str
-
-):
-
-
-    status = process_status.get(
-
-        process_key,
-
-        {
-
-            "status":
-                "UNKNOWN",
-
-
-            "currentActivity":
-                "UNKNOWN"
-
-        }
-
-    )
+async def status(process_key:str):
 
 
     return {
 
 
         "processInstanceKey":
-            process_key,
+        process_key,
 
 
         "status":
-            status["status"],
+        process_status.get(
+            process_key,
+            "UNKNOWN"
+        )
 
-
-        "currentActivity":
-            status["currentActivity"]
 
     }
