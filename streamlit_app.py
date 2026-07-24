@@ -24,19 +24,19 @@ st.set_page_config(
 )
 
 
+
 # ==========================================================
-# Custom Header
+# Header
 # ==========================================================
 
 st.markdown(
     """
-    <h1 style='text-align:center;'>
+    <h1 style="text-align:center;">
     🔄 ATO SuperStream Digital Rollover Platform
     </h1>
 
-    <p style='text-align:center; font-size:18px;'>
-    Intelligent workflow orchestration using 
-    Camunda + UiPath Automation
+    <p style="text-align:center;font-size:18px;">
+    Intelligent Workflow Automation using Camunda 8 + UiPath
     </p>
     """,
     unsafe_allow_html=True
@@ -51,7 +51,7 @@ st.divider()
 # Session State
 # ==========================================================
 
-defaults = {
+session_defaults = {
 
     "process_key": None,
 
@@ -64,15 +64,16 @@ defaults = {
 }
 
 
-for key, value in defaults.items():
+for key, value in session_defaults.items():
 
     if key not in st.session_state:
+
         st.session_state[key] = value
 
 
 
 # ==========================================================
-# Workflow Steps
+# Workflow Definition
 # ==========================================================
 
 workflow_steps = [
@@ -112,24 +113,24 @@ workflow_steps = [
 
 
 # ==========================================================
-# Main Layout
+# Layout
 # ==========================================================
 
-col1, col2 = st.columns(
-    [1,1]
+left, right = st.columns(
+    [1, 1]
 )
 
 
 
 # ==========================================================
-# Input Form
+# Rollover Request Form
 # ==========================================================
 
-with col1:
+with left:
 
 
     st.subheader(
-        "📄 Rollover Request"
+        "📄 Rollover Request Details"
     )
 
 
@@ -164,6 +165,7 @@ with col1:
 
         amount = st.number_input(
             "Rollover Amount",
+            min_value=0.0,
             value=50000.00
         )
 
@@ -179,17 +181,28 @@ with col1:
 
             payload = {
 
-                "memberId": member_id,
 
-                "memberName": member_name,
+                "memberId":
+                    member_id,
 
-                "sourceFund": source_fund,
 
-                "destinationFund": destination_fund,
+                "memberName":
+                    member_name,
 
-                "amount": amount
+
+                "sourceFund":
+                    source_fund,
+
+
+                "destinationFund":
+                    destination_fund,
+
+
+                "amount":
+                    amount
 
             }
+
 
 
             try:
@@ -212,6 +225,7 @@ with col1:
                 result = response.json()
 
 
+
                 st.session_state.process_key = (
 
                     result["processInstanceKey"]
@@ -221,14 +235,18 @@ with col1:
 
                 st.session_state.started = True
 
+
                 st.session_state.current_step = 0
+
 
                 st.session_state.status = "RUNNING"
 
 
+
                 st.success(
-                    "Rollover Process Started Successfully"
+                    "✅ Rollover Process Started"
                 )
+
 
 
             except Exception as e:
@@ -243,11 +261,10 @@ with col1:
 
 
 # ==========================================================
-# Status Dashboard
+# Process Monitoring Dashboard
 # ==========================================================
 
-
-with col2:
+with right:
 
 
     st.subheader(
@@ -258,26 +275,32 @@ with col2:
     if st.session_state.started:
 
 
+
         st.metric(
 
-            "Process Instance",
+            "Process Instance ID",
 
             st.session_state.process_key
 
         )
 
 
+
         st.metric(
 
-            "Current Status",
+            "Process Status",
 
             st.session_state.status
 
         )
 
 
+
         st.divider()
 
+
+
+        # Refresh Button
 
 
         if st.button(
@@ -285,7 +308,11 @@ with col2:
         ):
 
 
-            if st.session_state.current_step < len(workflow_steps)-1:
+            if (
+                st.session_state.current_step
+                <
+                len(workflow_steps)-1
+            ):
 
 
                 st.session_state.current_step += 1
@@ -294,18 +321,33 @@ with col2:
                 time.sleep(1)
 
 
-            else:
+
+            if (
+                st.session_state.current_step
+                ==
+                len(workflow_steps)-1
+            ):
 
 
                 st.session_state.status = "COMPLETED"
 
 
 
-        # Timeline
+        # ==================================================
+        # Workflow Timeline
+        # ==================================================
+
+
+        st.subheader(
+            "Workflow Timeline"
+        )
+
 
 
         for index, step in enumerate(workflow_steps):
 
+
+            # Completed previous steps
 
             if index < st.session_state.current_step:
 
@@ -317,6 +359,30 @@ with col2:
                 )
 
 
+
+            # Final completed state
+
+            elif (
+
+                index == len(workflow_steps)-1
+
+                and
+
+                st.session_state.current_step == index
+
+            ):
+
+
+                st.success(
+
+                    f"🎉 {step['name']} Successfully Completed"
+
+                )
+
+
+
+            # Current running step
+
             elif index == st.session_state.current_step:
 
 
@@ -326,6 +392,9 @@ with col2:
 
                 )
 
+
+
+            # Pending steps
 
             else:
 
@@ -341,7 +410,8 @@ with col2:
         st.divider()
 
 
-        if st.session_state.current_step == len(workflow_steps)-1:
+
+        if st.session_state.status == "COMPLETED":
 
 
             st.balloons()
@@ -360,51 +430,65 @@ with col2:
 
         st.info(
 
-            "Start a rollover request to monitor workflow"
+            "Submit a rollover request to start monitoring"
 
         )
 
 
 
 
-
 # ==========================================================
-# Camunda Integration
+# Architecture Footer
 # ==========================================================
-
 
 st.divider()
 
 
 st.subheader(
-    "🔗 Enterprise Platforms"
+    "🏗️ Solution Architecture"
 )
 
 
-c1, c2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 
-with c1:
+
+with col1:
 
     st.info(
         """
-        **Workflow Engine**
+        🔹 Camunda 8
 
-        Camunda 8
+        BPMN Workflow
 
-        BPMN + DMN Decision Automation
+        DMN Decision Engine
         """
     )
 
 
-with c2:
+
+with col2:
 
     st.info(
         """
-        **Automation Engine**
+        🔹 UiPath
 
-        UiPath Robot
+        Robotic Process Automation
 
-        End-to-End Transaction Processing
+        Transaction Execution
+        """
+    )
+
+
+
+with col3:
+
+    st.info(
+        """
+        🔹 Azure
+
+        FastAPI
+
+        Cloud Hosting
         """
     )
