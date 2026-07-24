@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-
   workflow_dispatch:
 
 
@@ -17,14 +16,13 @@ jobs:
     permissions:
       contents: read
 
-
     steps:
 
-      - name: Checkout source code
+      - name: Checkout source
         uses: actions/checkout@v4
 
 
-      - name: Setup Python 3.11
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -36,7 +34,7 @@ jobs:
           pip install -r requirements.txt
 
 
-      - name: Upload application artifact
+      - name: Upload application
         uses: actions/upload-artifact@v4
         with:
           name: python-app
@@ -53,9 +51,7 @@ jobs:
 
     needs: build
 
-
     permissions:
-
       id-token: write
       contents: read
 
@@ -63,7 +59,7 @@ jobs:
     steps:
 
 
-      - name: Download application artifact
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: python-app
@@ -74,15 +70,15 @@ jobs:
         uses: azure/login@v2
         with:
 
-          client-id: ${{ secrets.REPLACE_WITH_CLIENTID_SECRET }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_37AE178FE4E34897A7B31DF1FC8ABC4A }}
 
-          tenant-id: ${{ secrets.REPLACE_WITH_TENANTID_SECRET }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8C898202742F4CE1808FCF16834299A3 }}
 
-          subscription-id: ${{ secrets.REPLACE_WITH_SUBSCRIPTIONID_SECRET }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_EEAD6383961D46DD9636015F2B5B32A1 }}
 
 
 
-      - name: Deploy FastAPI application to Azure Web App
+      - name: Deploy FastAPI App
         uses: azure/webapps-deploy@v3
 
         with:
@@ -90,5 +86,3 @@ jobs:
           app-name: atosuperstreamrollover
 
           slot-name: Production
-
-          package: .
