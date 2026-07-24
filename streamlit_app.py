@@ -1,325 +1,410 @@
 import streamlit as st
 import requests
+import time
 
 
-# ---------------------------------------
+# ==========================================================
 # Configuration
-# ---------------------------------------
+# ==========================================================
 
-#FASTAPI_URL = "http://127.0.0.1:8000"
-FASTAPI_URL = "https://atosuperstreamrollover-exceg8h8d5d5hcae.australiaeast-01.azurewebsites.net"
-# ---------------------------------------
+FASTAPI_URL = (
+    "https://atosuperstreamrollover-exceg8h8d5d5hcae."
+    "australiaeast-01.azurewebsites.net"
+)
+
+
+# ==========================================================
 # Page Configuration
-# ---------------------------------------
+# ==========================================================
 
 st.set_page_config(
-    page_title="ATO SuperStream Rollover",
+    page_title="ATO SuperStream Digital Rollover",
     page_icon="🔄",
-    layout="centered"
+    layout="wide"
 )
 
 
-st.title("🔄 ATO SuperStream Rollover")
+# ==========================================================
+# Custom Header
+# ==========================================================
 
-st.write(
-    "Submit rollover request and monitor workflow"
+st.markdown(
+    """
+    <h1 style='text-align:center;'>
+    🔄 ATO SuperStream Digital Rollover Platform
+    </h1>
+
+    <p style='text-align:center; font-size:18px;'>
+    Intelligent workflow orchestration using 
+    Camunda + UiPath Automation
+    </p>
+    """,
+    unsafe_allow_html=True
 )
 
 
+st.divider()
 
-# ---------------------------------------
+
+
+# ==========================================================
 # Session State
-# ---------------------------------------
+# ==========================================================
 
-if "process_key" not in st.session_state:
-    st.session_state.process_key = None
+defaults = {
 
+    "process_key": None,
 
-if "started" not in st.session_state:
-    st.session_state.started = False
+    "started": False,
 
+    "current_step": 0,
 
-if "approved" not in st.session_state:
-    st.session_state.approved = False
+    "status": "NOT STARTED"
 
-
-if "uipath_completed" not in st.session_state:
-    st.session_state.uipath_completed = False
+}
 
 
+for key, value in defaults.items():
 
-# ---------------------------------------
-# Rollover Form
-# ---------------------------------------
+    if key not in st.session_state:
+        st.session_state[key] = value
 
-with st.form("rollover_form"):
+
+
+# ==========================================================
+# Workflow Steps
+# ==========================================================
+
+workflow_steps = [
+
+    {
+        "name": "Rollover Request Received",
+        "icon": "📥"
+    },
+
+    {
+        "name": "Validate Member Details",
+        "icon": "👤"
+    },
+
+    {
+        "name": "Eligibility Check",
+        "icon": "✅"
+    },
+
+    {
+        "name": "Operations Approval",
+        "icon": "👨‍💼"
+    },
+
+    {
+        "name": "Execute UiPath Robot",
+        "icon": "🤖"
+    },
+
+    {
+        "name": "Rollover Completed",
+        "icon": "🎉"
+    }
+
+]
+
+
+
+# ==========================================================
+# Main Layout
+# ==========================================================
+
+col1, col2 = st.columns(
+    [1,1]
+)
+
+
+
+# ==========================================================
+# Input Form
+# ==========================================================
+
+with col1:
 
 
     st.subheader(
-        "Member Details"
+        "📄 Rollover Request"
     )
 
 
-    member_id = st.text_input(
-        "Member ID",
-        "1234567890"
+    with st.form(
+        "rollover_form"
+    ):
+
+
+        member_id = st.text_input(
+            "Member ID",
+            "1234567890"
+        )
+
+
+        member_name = st.text_input(
+            "Member Name",
+            "John Doe"
+        )
+
+
+        source_fund = st.text_input(
+            "Source Fund",
+            "Fund A"
+        )
+
+
+        destination_fund = st.text_input(
+            "Destination Fund",
+            "Fund B"
+        )
+
+
+        amount = st.number_input(
+            "Rollover Amount",
+            value=50000.00
+        )
+
+
+        submit = st.form_submit_button(
+            "🚀 Start Rollover"
+        )
+
+
+
+        if submit:
+
+
+            payload = {
+
+                "memberId": member_id,
+
+                "memberName": member_name,
+
+                "sourceFund": source_fund,
+
+                "destinationFund": destination_fund,
+
+                "amount": amount
+
+            }
+
+
+            try:
+
+
+                response = requests.post(
+
+                    f"{FASTAPI_URL}/rollover",
+
+                    json=payload,
+
+                    timeout=30
+
+                )
+
+
+                response.raise_for_status()
+
+
+                result = response.json()
+
+
+                st.session_state.process_key = (
+
+                    result["processInstanceKey"]
+
+                )
+
+
+                st.session_state.started = True
+
+                st.session_state.current_step = 0
+
+                st.session_state.status = "RUNNING"
+
+
+                st.success(
+                    "Rollover Process Started Successfully"
+                )
+
+
+            except Exception as e:
+
+
+                st.error(
+                    f"API Error: {e}"
+                )
+
+
+
+
+
+# ==========================================================
+# Status Dashboard
+# ==========================================================
+
+
+with col2:
+
+
+    st.subheader(
+        "📊 Live Process Monitoring"
     )
 
 
-    member_name = st.text_input(
-        "Member Name",
-        "John Doe"
-    )
+    if st.session_state.started:
 
 
-    source_fund = st.text_input(
-        "Source Fund",
-        "Fund A"
-    )
+        st.metric(
+
+            "Process Instance",
+
+            st.session_state.process_key
+
+        )
 
 
-    destination_fund = st.text_input(
-        "Destination Fund",
-        "Fund B"
-    )
+        st.metric(
+
+            "Current Status",
+
+            st.session_state.status
+
+        )
 
 
-    amount = st.number_input(
-        "Amount",
-        min_value=0.0,
-        value=50000.0
-    )
-
-
-    submit = st.form_submit_button(
-        "Start Rollover"
-    )
+        st.divider()
 
 
 
-    if submit:
+        if st.button(
+            "🔄 Refresh Status"
+        ):
 
 
-        payload = {
+            if st.session_state.current_step < len(workflow_steps)-1:
 
 
-            "memberId":
-                member_id,
+                st.session_state.current_step += 1
 
 
-            "memberName":
-                member_name,
+                time.sleep(1)
 
 
-            "sourceFund":
-                source_fund,
+            else:
 
 
-            "destinationFund":
-                destination_fund,
-
-
-            "amount":
-                amount
-
-        }
+                st.session_state.status = "COMPLETED"
 
 
 
-        try:
+        # Timeline
 
 
-            response = requests.post(
-
-                f"{FASTAPI_URL}/rollover",
-
-                json=payload,
-                timeout=30
-
-            )
+        for index, step in enumerate(workflow_steps):
 
 
-            response.raise_for_status()
+            if index < st.session_state.current_step:
 
 
-            result = response.json()
+                st.success(
+
+                    f"✅ {step['icon']} {step['name']}"
+
+                )
+
+
+            elif index == st.session_state.current_step:
+
+
+                st.warning(
+
+                    f"🟡 {step['icon']} {step['name']} - In Progress"
+
+                )
+
+
+            else:
+
+
+                st.info(
+
+                    f"⚪ {step['icon']} {step['name']}"
+
+                )
 
 
 
-            st.session_state.process_key = (
-
-                result["processInstanceKey"]
-
-            )
+        st.divider()
 
 
-            st.session_state.started = True
+        if st.session_state.current_step == len(workflow_steps)-1:
 
-            st.session_state.approved = False
 
-            st.session_state.uipath_completed = False
-
+            st.balloons()
 
 
             st.success(
-                "Rollover process started"
+
+                "🎉 Rollover Completed Successfully"
+
             )
 
-
-
-        except Exception as e:
-
-
-            st.error(
-                f"Error starting process: {e}"
-            )
-
-
-
-
-
-# ---------------------------------------
-# Workflow Status
-# ---------------------------------------
-
-if st.session_state.started:
-
-
-    st.divider()
-
-
-    st.subheader(
-        "📊 Process Status"
-    )
-
-
-    st.write(
-
-        "Process Instance Key:",
-
-        st.session_state.process_key
-
-    )
-
-
-    st.divider()
-
-
-
-    # -----------------------------------
-    # Approval Refresh Button
-    # -----------------------------------
-
-    if not st.session_state.approved:
-
-
-        if st.button(
-            "🔄 Refresh Approval Status"
-        ):
-
-            st.session_state.approved = True
-
-
-
-    # -----------------------------------
-    # UiPath Refresh Button
-    # -----------------------------------
-
-    if st.session_state.approved and not st.session_state.uipath_completed:
-
-
-        if st.button(
-            "🤖 Refresh UiPath Status"
-        ):
-
-            st.session_state.uipath_completed = True
-
-
-
-
-
-    # -----------------------------------
-    # Timeline
-    # -----------------------------------
-
-
-    st.success(
-        "🟢 Rollover Request Received"
-    )
-
-
-    st.success(
-        "🟢 Validate Member"
-    )
-
-
-    st.success(
-        "🟢 Eligibility Check"
-    )
-
-
-
-    if st.session_state.approved:
-
-
-        st.success(
-            "🟢 Operations Approval Completed"
-        )
 
 
     else:
-
-
-        st.warning(
-            "🟡 Waiting for Operations Approval"
-        )
 
 
         st.info(
-            "Approve / Reject from Camunda Tasklist"
+
+            "Start a rollover request to monitor workflow"
+
         )
 
 
 
-    if st.session_state.uipath_completed:
 
 
-        st.success(
-            "🟢 Execute UiPath Robot Completed"
-        )
+# ==========================================================
+# Camunda Integration
+# ==========================================================
 
 
-        st.success(
-            "🎉 Completed"
-        )
+st.divider()
 
 
-    else:
+st.subheader(
+    "🔗 Enterprise Platforms"
+)
 
 
-        st.warning(
-            "🟡 Execute UiPath Robot"
-        )
+c1, c2 = st.columns(2)
 
 
-        st.write(
-            "⚪ Completed"
-        )
+with c1:
 
+    st.info(
+        """
+        **Workflow Engine**
 
+        Camunda 8
 
-    st.divider()
-
-
-
-    st.subheader(
-        "🔗 Camunda Tasklist"
+        BPMN + DMN Decision Automation
+        """
     )
 
 
-    st.markdown(
+with c2:
 
-        "https://syd-1.api.camunda.io/"
-        "e2b7140a-2917-46f4-9894-d562c031a1c7/tasklist"
+    st.info(
+        """
+        **Automation Engine**
 
+        UiPath Robot
+
+        End-to-End Transaction Processing
+        """
     )
